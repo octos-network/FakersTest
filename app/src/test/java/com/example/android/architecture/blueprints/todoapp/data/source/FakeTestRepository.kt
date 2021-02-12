@@ -1,31 +1,30 @@
 package com.example.android.architecture.blueprints.todoapp.data.source
 
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import com.example.android.architecture.blueprints.todoapp.data.Result
-import com.example.android.architecture.blueprints.todoapp.data.Result.Error
-import com.example.android.architecture.blueprints.todoapp.data.Result.Success
 import com.example.android.architecture.blueprints.todoapp.data.Task
+import kotlinx.coroutines.runBlocking
 
-class FakeDataSource(var tasks: MutableList<Task>? = mutableListOf()) : TasksDataSource {
-    override suspend fun saveTask(task: Task) {
-        tasks?.add(task)
+class FakeTestRepository : TasksRepository {
+
+    var tasksServiceData: LinkedHashMap<String, Task> = LinkedHashMap()
+    private val observableTasks = MutableLiveData<Result<List<Task>>>()
+
+    override suspend fun getTasks(forceUpdate: Boolean): Result<List<Task>> {
+        return Result.Success(tasksServiceData.values.toList())
     }
 
-    override suspend fun deleteAllTasks() {
-        tasks?.clear()
+    override suspend fun refreshTasks() {
+        observableTasks.value = getTasks()
     }
 
     override fun observeTasks(): LiveData<Result<List<Task>>> {
-        TODO("Not yet implemented")
+        runBlocking { refreshTasks() }
+        return observableTasks
     }
 
-    override suspend fun getTasks(): Result<List<Task>> {
-        tasks?.let { return Result.Success(ArrayList(it)) }
-        return Error(
-                Exception("Tasks not found")
-        )
-    }
-    override suspend fun refreshTasks() {
+    override suspend fun refreshTask(taskId: String) {
         TODO("Not yet implemented")
     }
 
@@ -33,11 +32,11 @@ class FakeDataSource(var tasks: MutableList<Task>? = mutableListOf()) : TasksDat
         TODO("Not yet implemented")
     }
 
-    override suspend fun getTask(taskId: String): Result<Task> {
+    override suspend fun getTask(taskId: String, forceUpdate: Boolean): Result<Task> {
         TODO("Not yet implemented")
     }
 
-    override suspend fun refreshTask(taskId: String) {
+    override suspend fun saveTask(task: Task) {
         TODO("Not yet implemented")
     }
 
@@ -61,8 +60,18 @@ class FakeDataSource(var tasks: MutableList<Task>? = mutableListOf()) : TasksDat
         TODO("Not yet implemented")
     }
 
+    override suspend fun deleteAllTasks() {
+        TODO("Not yet implemented")
+    }
+
     override suspend fun deleteTask(taskId: String) {
         TODO("Not yet implemented")
     }
 
+    fun addTasks(vararg tasks: Task) {
+        for (task in tasks) {
+            tasksServiceData[task.id] = task
+        }
+        runBlocking { refreshTasks() }
+    }
 }
